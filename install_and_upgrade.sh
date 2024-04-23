@@ -73,6 +73,39 @@ else
   die "  No settings file detected - please copy config/settings.yml.sample to config/settings.yml and edit for your environment"
 fi
 
+log_running "Checking pip packages..."
+v_envbash=`pip list | grep envbash | wc -l`
+if [ $v_envbash -eq 0 ]; then
+  pip install envbash==1.2.0 --break-system-packages
+  if [ $? -gt 0 ]; then
+    die "  Something failed with the install - please inspect the logs above"
+  fi
+fi
+
+v_facebooksdk=`pip list | grep facebook-sdk | wc -l`
+if [ $v_facebooksdk -eq 0 ]; then
+  pip install facebook-sdk==3.1.0 --break-system-packages
+  if [ $? -gt 0 ]; then
+    die "  Something failed with the install - please inspect the logs above"
+  fi
+fi
+
+v_pysqlite3=`pip list | grep pysqlite3 | wc -l`
+if [ $v_pysqlite3 -eq 0 ]; then
+  pip install pysqlite3==0.5.2 --break-system-packages
+  if [ $? -gt 0 ]; then
+    die "  Something failed with the install - please inspect the logs above"
+  fi
+fi
+
+log_running "Configure ATRM rule and PHP Controller based on scheduling user..."
+if [ $? -eq 0 ]; then
+   chmod +x $HOME/raspberry-noaa-v2/scripts/tools/atrm_rule_and_removal.sh
+   $HOME/raspberry-noaa-v2/scripts/tools/atrm_rule_and_removal.sh
+else
+  die "  Something failed with the install - please inspect the logs above"
+fi
+
 log_running "Running Ansible to install and/or update your raspberry-noaa-v2..."
 ansible-playbook -i ansible/hosts --extra-vars "@config/settings.yml" ansible/site.yml -e "target_user=$USER system_architecture=$(dpkg --print-architecture)"
 if [ $? -eq 0 ]; then
@@ -108,6 +141,13 @@ if [ $? -eq 0 ]; then
 else
   die "  Something failed with the install - please inspect the logs above"
 fi
+log_running "Configure PHP local time zone..."
+if [ $? -eq 0 ]; then
+   chmod +x $HOME/raspberry-noaa-v2/scripts/tools/configure_php_local_timezone.sh
+   $HOME/raspberry-noaa-v2/scripts/tools/configure_php_local_timezone.sh
+else
+  die "  Something failed with the install - please inspect the logs above"
+fi
 
 #log_running "Installing SSL certificates..."
 #if [ $? -eq 0 ] && [ $ENABLE_TLS == "true" ] && [ -n $WEB_SERVER_NAME ]; then
@@ -139,6 +179,7 @@ log_running "Updating web content..."
   find $WEB_HOME/ -mindepth 1 -type d -name "Config" -prune -o -print | xargs rm -rf &&
   cp -r $NOAA_HOME/webpanel/* $WEB_HOME/ &&
   sudo chown -R $USER:www-data $WEB_HOME/ &&
+  sudo apt install php8.2-intl &&
   composer install -d $WEB_HOME/
 ) || die "  Something went wrong updating web content - please inspect the logs above"
 
