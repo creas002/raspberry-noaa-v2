@@ -16,7 +16,7 @@ log_running() {
 }
 
 log_done() {
-  echo " ${GREEN}âœ“ $1${RESET}"
+  echo " ${GREEN}✓ $1${RESET}"
 }
 
 log_finished() {
@@ -25,7 +25,7 @@ log_finished() {
 
 # run as a normal user
 if [ $EUID -eq 0 ]; then
-  die "Don't use sudo when running this script, quitting..."
+  die "Please run this script as the pi user (not as root)"
 fi
 
 # verify the repo exists as expected in the home directory
@@ -41,8 +41,27 @@ if [ -f /etc/modprobe.d/rtlsdr.conf ]; then
   install_type='upgrade'
 fi
 
-log_running "Installing yaml and jsonschema Python modules..."
-sudo apt install python3-yaml python3-jsonschema -y
+log_running "Checking for python3-pip..."
+dpkg -l python3-pip 2>&1 >/dev/null
+if [ $? -eq 0 ]; then
+  log_done "  python3-pip already installed!"
+else
+  log_running "  python3-pip not yet installed - installing..."
+  sudo apt-get -y install python3-pip
+  if [ $? -eq 0 ]; then
+    log_done "    python3-pip successfully installed!"
+  else
+    die "    Could not install python3-pip - please check the logs above"
+  fi
+fi
+
+log_running "Installing Python dependencies..."
+sudo python3 -m pip install -r $HOME/raspberry-noaa-v2/requirements.txt
+if [ $? -eq 0 ]; then
+  log_done "  Successfully aligned required Python packages!"
+else
+  die "  Could not install dependent Python packages - please check the logs above"
+fi
 
 log_running "Checking configuration files..."
 python3 scripts/tools/validate_yaml.py config/settings.yml config/settings_schema.json
@@ -73,41 +92,8 @@ else
   die "  No settings file detected - please copy config/settings.yml.sample to config/settings.yml and edit for your environment"
 fi
 
-log_running "Checking pip packages..."
-v_envbash=`pip list | grep envbash | wc -l`
-if [ $v_envbash -eq 0 ]; then
-  pip install envbash==1.2.0 --break-system-packages
-  if [ $? -gt 0 ]; then
-    die "  Something failed with the install - please inspect the logs above"
-  fi
-fi
-
-v_facebooksdk=`pip list | grep facebook-sdk | wc -l`
-if [ $v_facebooksdk -eq 0 ]; then
-  pip install facebook-sdk==3.1.0 --break-system-packages
-  if [ $? -gt 0 ]; then
-    die "  Something failed with the install - please inspect the logs above"
-  fi
-fi
-
-v_pysqlite3=`pip list | grep pysqlite3 | wc -l`
-if [ $v_pysqlite3 -eq 0 ]; then
-  pip install pysqlite3==0.5.2 --break-system-packages
-  if [ $? -gt 0 ]; then
-    die "  Something failed with the install - please inspect the logs above"
-  fi
-fi
-
-log_running "Configure ATRM rule and PHP Controller based on scheduling user..."
-if [ $? -eq 0 ]; then
-   chmod +x $HOME/raspberry-noaa-v2/scripts/tools/atrm_rule_and_removal.sh
-   $HOME/raspberry-noaa-v2/scripts/tools/atrm_rule_and_removal.sh
-else
-  die "  Something failed with the install - please inspect the logs above"
-fi
-
 log_running "Running Ansible to install and/or update your raspberry-noaa-v2..."
-ansible-playbook -i ansible/hosts --extra-vars "@config/settings.yml" ansible/site.yml -e "target_user=$USER system_architecture=$(dpkg --print-architecture)"
+ansible-playbook -i ansible/hosts --extra-vars "@config/settings.yml" ansible/site.yml
 if [ $? -eq 0 ]; then
   log_done "  Ansible apply complete!"
 else
@@ -116,47 +102,6 @@ fi
 
 # source some env vars
 . "$HOME/.noaa-v2.conf"
-
-# Allow or remove HTTP port
-if [ "$ENABLE_NON_TLS" = true ]; then
-  log_running "Adding HTTP firewall rule for port $WEBPANEL_PORT..."
-  sudo ufw allow $WEBPANEL_PORT/tcp
-else
-  log_running "Removing HTTP firewall rule for port $WEBPANEL_PORT..."
-  sudo ufw delete allow $WEBPANEL_PORT/tcp
-fi
-
-# Allow or remove HTTPS port
-if [ "$ENABLE_TLS" = true ]; then
-  log_running "Adding HTTPS firewall rule for port $WEBPANEL_TLS_PORT..."
-  sudo ufw allow $WEBPANEL_TLS_PORT/tcp
-else
-  log_running "Removing HTTP firewall rule for port $WEBPANEL_TLS_PORT..."
-  sudo ufw delete allow $WEBPANEL_TLS_PORT/tcp
-fi
-
-log_running "Installing certbot for SSL certificates signed by the Let's Encrypt..."
-if [ $? -eq 0 ]; then
-  sudo apt install certbot -y
-else
-  die "  Something failed with the install - please inspect the logs above"
-fi
-log_running "Configure PHP local time zone..."
-if [ $? -eq 0 ]; then
-   chmod +x $HOME/raspberry-noaa-v2/scripts/tools/configure_php_local_timezone.sh
-   $HOME/raspberry-noaa-v2/scripts/tools/configure_php_local_timezone.sh
-else
-  die "  Something failed with the install - please inspect the logs above"
-fi
-
-#log_running "Installing SSL certificates..."
-#if [ $? -eq 0 ] && [ $ENABLE_TLS == "true" ] && [ -n $WEB_SERVER_NAME ]; then
-#  sudo certbot certonly --webroot -w /var/www/wx-new/public -d $WEB_SERVER_NAME
-#  log_running "Restarting NGINX web server..."
-#  sudo systemctl restart nginx
-#else
-#  die "  Something failed with the install - please inspect the logs above"
-#fi
 
 # TLE data files
 # NOTE: This should be DRY-ed up with the scripts/schedule.sh script
@@ -178,8 +123,7 @@ log_running "Updating web content..."
 (
   find $WEB_HOME/ -mindepth 1 -type d -name "Config" -prune -o -print | xargs rm -rf &&
   cp -r $NOAA_HOME/webpanel/* $WEB_HOME/ &&
-  sudo chown -R $USER:www-data $WEB_HOME/ &&
-  sudo apt install php8.2-intl &&
+  sudo chown -R pi:www-data $WEB_HOME/ &&
   composer install -d $WEB_HOME/
 ) || die "  Something went wrong updating web content - please inspect the logs above"
 
@@ -211,8 +155,4 @@ if [ $install_type == 'install' ]; then
   log_running "not installed the original raspberry-noaa repo content), you likely need to"
   log_running "restart your device. Please do this to rule out any potential issues in the"
   log_running "software and libraries that have been installed."
-
-  log_running "Automatically rebooting your device now to finish the new install."
-  echo -e "\n\n\nAutomatically rebooting your device now to finish the new install."
-  sudo reboot
 fi
