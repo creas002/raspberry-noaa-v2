@@ -2,35 +2,35 @@
 
 # Setting SDR Device ID
 
-Good news - If you are using more than 1 SDR Dongle in your RN2 configuration and you wish to assign a particular SDR Dongle/Antenna pair to a satellite, you can!
+Good news - If you are using more than one SDR dongle in your RN2 configuration and you wish to assign a particular SDR dongle with an antenna pair to a satellite, you can!
 
-  Work flow:
+  Overview of the work flow:
 
-    #1 - Assign a unique serial # to each RTL-SDR Dongle that you wish to specitically assign to a satellite  
+    #1 - Assign a unique serial # to each RTL-SDR dongle that you wish to specitically assign to a satellite  
     #2 - Update settings.yml 
     #3 - Execute install_and_upgrade.sh
-    #4 - After the scheduled job executes for the satellite you assigned a unique device id to, confirm correct device ID was used.
+    #4 - After the scheduled job executes for the satellite you assigned a unique sdr device id to, confirm correct device ID was used.
 
-  These example instructions are for RTL-SDR Dongles. 
+  The following example instructions are for RTL-SDR dongles. 
 
-  Step #1 - Assign a unique serial # to each RTL-SDR Dongle
+  Step #1 - Assign a unique serial # to each RTL-SDR dongle
 
     NOTE - RTL Serial# programmed into the SDR and the sdr_device_id in settings.yml must not have any leading ZERO's or it will not work.  
-           The serial number must be no more than 8 characters or less and it must be an integer and must not have any leading ZERO characters.
+           The serial number must be no more than 8 characters or less and it must be an integer and must not have any leading ZERO characters (e.g., not use 00000001 as a SN, but just 1).
 
 
 Check currect serial# of installed SDR Dongle's
 
-	rtl_test -t
+	$ rtl_test -t
 	Found 2 device(s):
   	0:  RTLSDRBlog, Blog V4, SN: 00000001
   	1:  RTLSDRBlog, Blog V4, SN: 00000001
 
 Change the SDR serial #, when prompted, select 'y' to change
-Since our SDR Device ID's must fall between 1-9, we will update both SDR Dongles with serial #'s 1 & 2,
-so remove all but the one of the SDR's whose serial # you want to update before running rtl_eeprom utility.
+Important: Since our SDR Device SN's must fall between 1-9, we will update both SDR Dongles with a new serial # 1 & 2, respectively.
+To do so we will remove all but the one of the SDR's whose serial # you want to update before running rtl_eeprom utility.
 
-	rtl_eeprom -s 1
+	$ rtl_eeprom -s 1
 	Found 1 device(s):
 	  0:  Generic RTL2832U OEM
 
@@ -69,13 +69,13 @@ so remove all but the one of the SDR's whose serial # you want to update before 
 
 After removing and reinstalling the SDR Dongle, Confirm the serial #1 written is correct
 
-	rtl_test
+	$ rtl_test
 	Found 1 device(s):
 	  0:  RTLSDRBlog, Blog V4, SN: 1
 
 Now remove that SDR Dongle and insert the second SDR Dongle which we will assign serial #2 
 
-	rtl_eeprom -s 2
+	$ rtl_eeprom -s 2
 	Found 1 device(s):
 	  0:  Generic RTL2832U OEM
 
@@ -114,14 +114,14 @@ Now remove that SDR Dongle and insert the second SDR Dongle which we will assign
 
 After removing and reinstalling the second SDR Dongle, Confirm the serial #2 written is correct
 
-	rtl_test
+	$ rtl_test
 	Found 1 device(s):
 	  0:  RTLSDRBlog, Blog V4, SN: 2
 
 
 Now insert all the SDR dongles and ensure they show up as Serial #1 & #2
 
-	rtl_test
+	$ rtl_test
 	Found 2 device(s):
 	  0:  RTLSDRBlog, Blog V4, SN: 1
 	  1:  RTLSDRBlog, Blog V4, SN: 2
@@ -131,7 +131,7 @@ Now insert all the SDR dongles and ensure they show up as Serial #1 & #2
 
 Make a backup before changing settings.yml, just in case...
 
-	cp -p ${HOME}/raspberry-noaa-v2/config/settings.yml ${HOME}/raspberry-noaa-v2/config/settings.yml.pre_device_id_change
+	$ cp -p ${HOME}/raspberry-noaa-v2/config/settings.yml ${HOME}/raspberry-noaa-v2/config/settings.yml.pre_device_id_change
 
 In settings.yml you must to enable use_device_string
 
@@ -190,4 +190,3 @@ Here you can see satdump saw both serial #1 & serial #2, since I set NOAA 15 to 
 	[15:24:53 - 12/08/2024] ^[[36m(D)    - source_id : "1"
       
 Good luck!
-
