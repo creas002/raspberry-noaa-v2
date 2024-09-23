@@ -53,7 +53,7 @@
 - name: make RTL-SDR software
   command: make
   args:
-    chdir: /tmp/rtl-sdr/build
+    chdir: /tmp/rtl-sdr-blog/build
     creates: /tmp/rtl-sdr-blog/build/src/rtl-sdr-blog
   when: rtlsdr.changed
 
