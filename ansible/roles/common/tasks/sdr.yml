@@ -30,15 +30,15 @@
 
 - name: git clone RTL-SDR software
   git:
-    repo: https://github.com/osmocom/rtl-sdr.git
-    dest: /tmp/rtl-sdr
+    repo: https://github.com/rtlsdrblog/rtl-sdr-blog.git
+    dest: /tmp/rtl-sdr-blog
     update: no
   register: rtlsdr
   when: not rtlsdr_bin.stat.exists
 
 - name: create RTL-SDR build directory
   file:
-    path: /tmp/rtl-sdr/build
+    path: /tmp/rtl-sdr-blog/build
     state: directory
     mode: 0755
   when: rtlsdr.changed
@@ -46,22 +46,22 @@
 - name: generate build system for RTL-SDR software
   command: cmake ../ -DDETACH_KERNEL_DRIVER=ON
   args:
-    chdir: /tmp/rtl-sdr/build
-    creates: /tmp/rtl-sdr/build/Makefile
+    chdir: /tmp/rtl-sdr-blog/build
+    creates: /tmp/rtl-sdr-blog/build/Makefile
   when: rtlsdr.changed
 
 - name: make RTL-SDR software
   command: make
   args:
     chdir: /tmp/rtl-sdr/build
-    creates: /tmp/rtl-sdr/build/src/rtl_sdr
+    creates: /tmp/rtl-sdr-blog/build/src/rtl-sdr-blog
   when: rtlsdr.changed
 
 - name: install RTL-SDR software
   become: yes
   command: make install
   args:
-    chdir: /tmp/rtl-sdr/build
+    chdir: /tmp/rtl-sdr-blog/build
     creates: /usr/local/bin/rtl_fm
   when: rtlsdr.changed
 
@@ -78,7 +78,7 @@
 - name: copy RTL-SDR udev rules
   become: yes
   copy:
-    src: /tmp/rtl-sdr/rtl-sdr.rules
+    src: /tmp/rtl-sdr-blog/rtl-sdr.rules
     dest: /etc/udev/rules.d/rtl-sdr.rules
     owner: root
     group: root
