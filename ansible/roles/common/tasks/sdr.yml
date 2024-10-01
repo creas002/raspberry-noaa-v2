@@ -36,33 +36,8 @@
   register: rtlsdr
   when: not rtlsdr_bin.stat.exists
 
-- name: create RTL-SDR build directory
-  file:
-    path: /tmp/rtl-sdr-blog/build
-    state: directory
-    mode: 0755
-  when: rtlsdr.changed
-
-- name: generate build system for RTL-SDR software
-  command: cmake ../ -DDETACH_KERNEL_DRIVER=ON
-  args:
-    chdir: /tmp/rtl-sdr-blog/build
-    creates: /tmp/rtl-sdr-blog/build/Makefile
-  when: rtlsdr.changed
-
-- name: make RTL-SDR software
-  command: make
-  args:
-    chdir: /tmp/rtl-sdr-blog/build
-    creates: /tmp/rtl-sdr-blog/build/src/rtl-sdr-blog
-  when: rtlsdr.changed
-
-- name: install RTL-SDR software
-  become: yes
-  command: make install
-  args:
-    chdir: /tmp/rtl-sdr-blog/build
-    creates: /usr/local/bin/rtl_fm
+- name: RTL-SDR-BLOG Package Build
+  shell: cd /tmp/rtl-sdr-blog ; sudo dpkg-buildpackage -b --no-sign ; cd .. ; sudo dpkg -i librtlsdr0_*.deb ; sudo dpkg -i librtlsdr-dev_*.deb ; sudo dpkg -i rtl-sdr_*.deb ; sudo rm -rf /tmp/rtl-sdr-blog /tmp/librtlsdr* /tmp/rtl-sdr*
   when: rtlsdr.changed
 
 - name: link RTL-SDR files
