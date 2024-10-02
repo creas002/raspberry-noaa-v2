@@ -37,7 +37,7 @@
   when: not rtlsdr_bin.stat.exists
 
 - name: RTL-SDR-BLOG Package Build
-  shell: sudo apt install debhelper ; cd /tmp/rtl-sdr-blog ; sudo dpkg-buildpackage -b --no-sign ; cd .. ; sudo dpkg -i librtlsdr0_*.deb ; sudo dpkg -i librtlsdr-dev_*.deb ; sudo dpkg -i rtl-sdr_*.deb ; sudo cp /tmp/rtl-sdr-blog/rtl-sdr.rules /etc/udev/rules.d/rtl-sdr.rules ; sudo rm -rf /tmp/rtl-sdr-blog /tmp/librtlsdr* /tmp/rtl-sdr*
+  shell: cd /tmp/rtl-sdr-blog ; sudo dpkg-buildpackage -b --no-sign ; cd .. ; sudo dpkg -i librtlsdr0_*.deb ; sudo dpkg -i librtlsdr-dev_*.deb ; sudo dpkg -i rtl-sdr_*.deb ; sudo cp /tmp/rtl-sdr-blog/rtl-sdr.rules /etc/udev/rules.d/rtl-sdr.rules ; sudo rm -rf /tmp/rtl-sdr-blog /tmp/librtlsdr* /tmp/rtl-sdr*
   when: rtlsdr.changed
 
 - name: link RTL-SDR files

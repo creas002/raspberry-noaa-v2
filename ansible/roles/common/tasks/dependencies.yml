@@ -59,6 +59,7 @@
       - gfortran
       - libopencv-dev
       - python3-opencv
+      - debhelper
 
 - name: Install required wxtoimg 32-bit dependencies (arm64)
   become: yes
