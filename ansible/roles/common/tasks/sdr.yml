@@ -25,7 +25,7 @@
 
 - name: check if RTL-SDR software is installed
   stat:
-    path: /usr/local/bin/rtl_sdr
+    path: /usr/bin/rtl_sdr
   register: rtlsdr_bin
 
 - name: git clone RTL-SDR software
@@ -36,33 +36,8 @@
   register: rtlsdr
   when: not rtlsdr_bin.stat.exists
 
-- name: create RTL-SDR build directory
-  file:
-    path: /tmp/rtl-sdr-blog/build
-    state: directory
-    mode: 0755
-  when: rtlsdr.changed
-
-- name: generate build system for RTL-SDR software
-  command: cmake ../ -DDETACH_KERNEL_DRIVER=ON
-  args:
-    chdir: /tmp/rtl-sdr-blog/build
-    creates: /tmp/rtl-sdr-blog/build/Makefile
-  when: rtlsdr.changed
-
-- name: make RTL-SDR software
-  command: make
-  args:
-    chdir: /tmp/rtl-sdr-blog/build
-    creates: /tmp/rtl-sdr-blog/build/src/rtl-sdr-blog
-  when: rtlsdr.changed
-
-- name: install RTL-SDR software
-  become: yes
-  command: make install
-  args:
-    chdir: /tmp/rtl-sdr-blog/build
-    creates: /usr/local/bin/rtl_fm
+- name: RTL-SDR-BLOG Package Build
+  shell: sudo apt install debhelper ; cd /tmp/rtl-sdr-blog ; sudo dpkg-buildpackage -b --no-sign ; cd .. ; sudo dpkg -i librtlsdr0_*.deb ; sudo dpkg -i librtlsdr-dev_*.deb ; sudo dpkg -i rtl-sdr_*.deb ; sudo cp /tmp/rtl-sdr-blog/rtl-sdr.rules /etc/udev/rules.d/rtl-sdr.rules ; sudo rm -rf /tmp/rtl-sdr-blog /tmp/librtlsdr* /tmp/rtl-sdr*
   when: rtlsdr.changed
 
 - name: link RTL-SDR files
@@ -74,17 +49,6 @@
   become: yes
   command: modprobe -r msi2500 msi001
   ignore_errors: yes  # Ignore errors if the modules are not loaded
-
-- name: copy RTL-SDR udev rules
-  become: yes
-  copy:
-    src: /tmp/rtl-sdr-blog/rtl-sdr.rules
-    dest: /etc/udev/rules.d/rtl-sdr.rules
-    owner: root
-    group: root
-    mode: 0644
-    remote_src: yes
-  when: rtlsdr.changed
 
 - name: copy Airspy udev rules
   become: yes
